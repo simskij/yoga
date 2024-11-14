@@ -1,6 +1,6 @@
 use clap::Args;
-use clap::Subcommand;
 use clap::Parser;
+use clap::Subcommand;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -25,5 +25,5 @@ pub struct GithubArgs {
 #[derive(Debug, Subcommand)]
 #[command(arg_required_else_help = true)]
 pub enum GitHubCommands {
-    Issues ,
+    Issues,
 }
