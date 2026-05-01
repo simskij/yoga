@@ -15,10 +15,15 @@ var upgradeCmd = &cobra.Command{
 	Short: "Upgrade yo to the latest release",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Printf("%s Fetching latest release from %s...\n", ui.Dim.Render("·"), defaultRepo)
-		if err := upgrade.Run(defaultRepo); err != nil {
+		upgraded, err := upgrade.Run(defaultRepo, version)
+		if err != nil {
 			return err
 		}
-		fmt.Printf("%s yo upgraded successfully\n", ui.Green.Render("✓"))
+		if upgraded {
+			fmt.Printf("%s yo upgraded successfully\n", ui.Green.Render("✓"))
+		} else {
+			fmt.Println(ui.Dim.Render("Already up to date."))
+		}
 		return nil
 	},
 }

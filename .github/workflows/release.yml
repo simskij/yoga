@@ -28,7 +28,8 @@ jobs:
             os="${target%/*}"
             arch="${target#*/}"
             CGO_ENABLED=0 GOOS=$os GOARCH=$arch \
-              go build -trimpath -ldflags="-s -w" \
+              go build -trimpath \
+              -ldflags="-s -w -X github.com/simskij/yo/cmd/yo.version=${{ github.ref_name }}" \
               -o "yo_${os}_${arch}" ./cmd/yo
           done
 

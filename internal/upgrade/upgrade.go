@@ -16,7 +16,8 @@ type assetPayload struct {
 }
 
 type releasePayload struct {
-	Assets []assetPayload `json:"assets"`
+	TagName string         `json:"tag_name"`
+	Assets  []assetPayload `json:"assets"`
 }
 
 // AssetName returns the expected GitHub release asset name for the current platform.
@@ -25,20 +26,25 @@ func AssetName() string {
 }
 
 // Run fetches the latest release from the given GitHub repo (e.g. "simskij/yoga")
-// and atomically replaces the running binary.
-func Run(repo string) error {
+// and atomically replaces the running binary. It returns true if the binary was
+// replaced, or false if currentVersion is already the latest.
+func Run(repo, currentVersion string) (bool, error) {
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 	execPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("locate current binary: %w", err)
+		return false, fmt.Errorf("locate current binary: %w", err)
 	}
-	return run(apiURL, execPath, http.DefaultClient)
+	return run(apiURL, execPath, currentVersion, http.DefaultClient)
 }
 
-func run(apiURL, targetPath string, client *http.Client) error {
+func run(apiURL, targetPath, currentVersion string, client *http.Client) (bool, error) {
 	rel, err := fetchLatest(apiURL, client)
 	if err != nil {
-		return fmt.Errorf("fetch latest release: %w", err)
+		return false, fmt.Errorf("fetch latest release: %w", err)
+	}
+
+	if currentVersion != "dev" && currentVersion == rel.TagName {
+		return false, nil
 	}
 
 	name := AssetName()
@@ -50,10 +56,10 @@ func run(apiURL, targetPath string, client *http.Client) error {
 		}
 	}
 	if downloadURL == "" {
-		return fmt.Errorf("no release asset found for %s", name)
+		return false, fmt.Errorf("no release asset found for %s", name)
 	}
 
-	return downloadAndReplace(downloadURL, targetPath, client)
+	return true, downloadAndReplace(downloadURL, targetPath, client)
 }
 
 func fetchLatest(apiURL string, client *http.Client) (*releasePayload, error) {
