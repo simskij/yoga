@@ -24,7 +24,7 @@ func AssetName() string {
 	return fmt.Sprintf("yo_%s_%s", runtime.GOOS, runtime.GOARCH)
 }
 
-// Run fetches the latest release from the given GitHub repo (e.g. "simskij/yo")
+// Run fetches the latest release from the given GitHub repo (e.g. "simskij/yoga")
 // and atomically replaces the running binary.
 func Run(repo string) error {
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)

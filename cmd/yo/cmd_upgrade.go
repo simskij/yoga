@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultRepo = "simskij/yo"
+const defaultRepo = "simskij/yoga"
 
 var upgradeCmd = &cobra.Command{
 	Use:   "upgrade",
