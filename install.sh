@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-REPO="simskij/yo"
+REPO="simskij/yoga"
 BIN_DIR="${HOME}/.local/bin"
 YO_PATH="~/.yofiles"
 CLONE_REPO=""
