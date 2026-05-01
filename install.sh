@@ -17,7 +17,7 @@ Options:
   -h, --help          Show this help
 
 One-shot example:
-  curl -sL https://raw.githubusercontent.com/simskij/yo/main/install.sh | sh -s -- \\
+  curl -sL https://raw.githubusercontent.com/simskij/yoga/main/install.sh | sh -s -- \\
     --repo git@github.com:you/dotfiles.git
 EOF
 }
