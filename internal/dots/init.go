@@ -2,11 +2,10 @@ package dots
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 )
 
-const readme = `# dotfiles
+const readme = `# dots
 
 Managed by yo. Structure:
 
@@ -39,16 +38,6 @@ func Init(dotsPath, machine string) error {
 	readmePath := filepath.Join(dotsPath, "README.md")
 	if _, err := os.Stat(readmePath); os.IsNotExist(err) {
 		if err := os.WriteFile(readmePath, []byte(readme), 0o644); err != nil {
-			return err
-		}
-	}
-
-	gitDir := filepath.Join(dotsPath, ".git")
-	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
-		cmd := exec.Command("git", "init", dotsPath)
-		cmd.Stdout = nil
-		cmd.Stderr = nil
-		if err := cmd.Run(); err != nil {
 			return err
 		}
 	}

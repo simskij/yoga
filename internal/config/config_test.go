@@ -11,8 +11,8 @@ import (
 
 func TestDefaultConfig(t *testing.T) {
 	cfg := config.DefaultConfig()
-	if cfg.Dots.Path != "~/.dotfiles" {
-		t.Errorf("expected ~/.dotfiles, got %s", cfg.Dots.Path)
+	if cfg.Yo.Path != "~/.yofiles" {
+		t.Errorf("expected ~/.yofiles, got %s", cfg.Yo.Path)
 	}
 }
 
@@ -63,7 +63,7 @@ func TestSaveAndLoad(t *testing.T) {
 	testutil.TempHome(t)
 
 	want := &config.Config{}
-	want.Dots.Path = "/tmp/my-dotfiles"
+	want.Yo.Path = "/tmp/my-yofiles"
 
 	if err := config.Save(want); err != nil {
 		t.Fatal(err)
@@ -76,8 +76,8 @@ func TestSaveAndLoad(t *testing.T) {
 	if got == nil {
 		t.Fatal("expected config, got nil")
 	}
-	if got.Dots.Path != want.Dots.Path {
-		t.Errorf("got %s, want %s", got.Dots.Path, want.Dots.Path)
+	if got.Yo.Path != want.Yo.Path {
+		t.Errorf("got %s, want %s", got.Yo.Path, want.Yo.Path)
 	}
 }
 
@@ -114,7 +114,7 @@ func TestExists_True(t *testing.T) {
 	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(cfgDir, "config.yaml"), []byte("dots:\n  path: ~/.dotfiles\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(cfgDir, "config.yaml"), []byte("yo:\n  path: ~/.yofiles\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

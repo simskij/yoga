@@ -8,15 +8,17 @@ import (
 type FileStatus int
 
 const (
-	StatusLinked  FileStatus = iota // correctly symlinked
-	StatusDiffers                   // exists but points elsewhere or is a regular file
-	StatusMissing                   // target does not exist
+	StatusLinked    FileStatus = iota // correctly symlinked
+	StatusDiffers                     // exists but points elsewhere or is a regular file
+	StatusMissing                     // target does not exist
+	StatusEncrypted                   // encrypted file, managed by copy not symlink
 )
 
 type Entry struct {
-	Src    string
-	Dst    string
-	Status FileStatus
+	Src       string
+	Dst       string
+	Status    FileStatus
+	Encrypted bool
 }
 
 func Collect(dotsPath, machine string) ([]Entry, error) {
@@ -53,7 +55,11 @@ func Collect(dotsPath, machine string) ([]Entry, error) {
 			if err != nil {
 				return err
 			}
+			// encrypted files map to dst without the .age extension
 			dst := filepath.Join(home, rel)
+			if isEncrypted(path) {
+				dst = dst[:len(dst)-len(encExt)]
+			}
 			seen[dst] = path
 			return nil
 		})
@@ -64,10 +70,12 @@ func Collect(dotsPath, machine string) ([]Entry, error) {
 
 	entries := make([]Entry, 0, len(seen))
 	for dst, src := range seen {
+		enc := isEncrypted(src)
 		entries = append(entries, Entry{
-			Src:    src,
-			Dst:    dst,
-			Status: fileStatus(src, dst),
+			Src:       src,
+			Dst:       dst,
+			Encrypted: enc,
+			Status:    fileStatus(src, dst),
 		})
 	}
 	return entries, nil

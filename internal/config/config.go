@@ -7,20 +7,35 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultConfigPath = "~/.config/yo/config.yaml"
+type DotsEncryptionConfig struct {
+	Identity string `yaml:"identity"`
+}
 
 type DotsConfig struct {
+	Encryption DotsEncryptionConfig `yaml:"encryption"`
+}
+
+type YoConfig struct {
 	Path string `yaml:"path"`
 }
 
 type Config struct {
+	Yo   YoConfig   `yaml:"yo"`
 	Dots DotsConfig `yaml:"dots"`
+}
+
+func (c *Config) DotsPath() (string, error) {
+	expanded, err := ExpandPath(c.Yo.Path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(expanded, "dots"), nil
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		Dots: DotsConfig{
-			Path: "~/.dotfiles",
+		Yo: YoConfig{
+			Path: "~/.yofiles",
 		},
 	}
 }

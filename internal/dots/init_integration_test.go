@@ -41,20 +41,6 @@ func TestInit_WritesReadme(t *testing.T) {
 	}
 }
 
-func TestInit_InitializesGitRepo(t *testing.T) {
-	testutil.TempHome(t)
-	dotsRoot := t.TempDir()
-
-	if err := dots.Init(dotsRoot, "mymachine"); err != nil {
-		t.Fatal(err)
-	}
-
-	gitDir := filepath.Join(dotsRoot, ".git")
-	if _, err := os.Stat(gitDir); err != nil {
-		t.Errorf("expected .git dir at %s: %v", gitDir, err)
-	}
-}
-
 func TestInit_Idempotent(t *testing.T) {
 	testutil.TempHome(t)
 	dotsRoot := t.TempDir()
