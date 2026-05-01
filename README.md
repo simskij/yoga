@@ -5,6 +5,12 @@ Personal kitchen-sink CLI. Currently does one thing: manages dotfiles across mac
 ## Install
 
 ```sh
+curl -sL https://raw.githubusercontent.com/simskij/yoga/main/install.sh | sh
+```
+
+Or with `go install`:
+
+```sh
 go install github.com/simskij/yo/cmd/yo@latest
 ```
 
@@ -17,19 +23,30 @@ just install # installs to $GOPATH/bin
 
 ## Getting started
 
+**Fresh setup:**
+
 ```sh
 yo init
-```
-
-Creates `~/.config/yo/config.yaml` and initialises a git repo at `~/.yofiles`. That repo is where everything lives — dots go under `~/.yofiles/dots/`, and future domains will get their own subdirectories.
-
-Then scaffold the dotfiles structure:
-
-```sh
 yo dots init
 ```
 
-Creates `~/.yofiles/dots/global/` and `~/.yofiles/dots/<hostname>/`. Push `~/.yofiles` to a remote and you have a portable setup.
+`yo init` creates `~/.config/yo/config.yaml` and initialises a git repo at `~/.yofiles`. `yo dots init` scaffolds `~/.yofiles/dots/global/` and `~/.yofiles/dots/<hostname>/`. Push `~/.yofiles` to a remote and you have a portable setup.
+
+**Bootstrapping from an existing dotfiles repo:**
+
+```sh
+yo init
+yo dots clone git@github.com:you/dotfiles.git
+```
+
+Clones the repo into `~/.yofiles/dots/` and immediately runs `yo dots apply`.
+
+**One-shot on a new machine** (install + clone + apply in a single command):
+
+```sh
+curl -sL https://raw.githubusercontent.com/simskij/yoga/main/install.sh | sh -s -- \
+  --repo git@github.com:you/dotfiles.git
+```
 
 ## How dotfiles work
 
@@ -130,6 +147,14 @@ dots:
   encryption:
     identity: ~/.age/key    # optional; falls back to ~/.ssh/id_ed25519
 ```
+
+## Upgrading
+
+```sh
+yo upgrade
+```
+
+Fetches the latest release from GitHub and replaces the running binary in-place.
 
 ## Targeting a specific machine
 
