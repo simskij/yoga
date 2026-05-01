@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed
+Accepted
+
+> Note: implemented after ADR-0012. `--dots-path` references in the original text
+> map to `--path` in the implementation. `yo dots clone` clones into the
+> `dots/` subdirectory of `yo.path`, not directly into `dots.path`.
 
 ## Context and Problem Statement
 

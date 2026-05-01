@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"filippo.io/age"
@@ -14,6 +15,9 @@ import (
 )
 
 var machineFlag string
+var dotsInitDryRun bool
+var applyDryRun bool
+var cloneDryRun bool
 
 var dotsCmd = &cobra.Command{
 	Use:   "dots",
@@ -24,29 +28,41 @@ var dotsInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Scaffold dots directory structure",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := runInit(); err != nil {
-			return err
-		}
-		cfg, err := config.Load()
-		if err != nil {
-			return err
-		}
-		machine, err := hostname(machineFlag)
-		if err != nil {
-			return err
-		}
-		dp, err := cfg.DotsPath()
-		if err != nil {
-			return err
-		}
-		if err := dots.Init(dp, machine); err != nil {
-			return err
-		}
-		fmt.Printf("%s Scaffolded dots at %s\n", ui.Green.Render("✓"), dp)
+		return runDotsInit(dotsInitDryRun)
+	},
+}
+
+func runDotsInit(dryRun bool) error {
+	yoPath, err := runInit(dryRun)
+	if err != nil {
+		return err
+	}
+
+	machine, err := hostname(machineFlag)
+	if err != nil {
+		return err
+	}
+
+	expanded, err := config.ExpandPath(yoPath)
+	if err != nil {
+		return err
+	}
+	dp := filepath.Join(expanded, "dots")
+
+	if dryRun {
+		fmt.Printf("%s Would scaffold dots at %s (dry run)\n", ui.Dim.Render("·"), dp)
 		fmt.Printf("  %s global/\n", ui.Dim.Render("·"))
 		fmt.Printf("  %s %s/\n", ui.Dim.Render("·"), machine)
 		return nil
-	},
+	}
+
+	if err := dots.Init(dp, machine); err != nil {
+		return err
+	}
+	fmt.Printf("%s Scaffolded dots at %s\n", ui.Green.Render("✓"), dp)
+	fmt.Printf("  %s global/\n", ui.Dim.Render("·"))
+	fmt.Printf("  %s %s/\n", ui.Dim.Render("·"), machine)
+	return nil
 }
 
 var dotsApplyCmd = &cobra.Command{
@@ -54,60 +70,122 @@ var dotsApplyCmd = &cobra.Command{
 	Short: "Symlink dotfiles into $HOME",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadConfig()
-		if err != nil {
-			return err
-		}
-		dp, err := cfg.DotsPath()
-		if err != nil {
-			return err
-		}
-		machine, err := hostname(machineFlag)
-		if err != nil {
-			return err
-		}
 		subpath := ""
 		if len(args) > 0 {
 			subpath = args[0]
 		}
-		entries, err := dots.Collect(dp, machine)
+		return runDotsApply(machineFlag, subpath, applyDryRun)
+	},
+}
+
+func runDotsApply(machine, subpath string, dryRun bool) error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	dp, err := cfg.DotsPath()
+	if err != nil {
+		return err
+	}
+	if machine == "" {
+		machine, err = hostname("")
 		if err != nil {
 			return err
 		}
-		home, _ := os.UserHomeDir()
-		applied := 0
-		for _, e := range entries {
-			if subpath != "" {
-				if !isSubpath(e.Dst, filepath.Join(home, subpath)) {
-					continue
-				}
+	}
+	entries, err := dots.Collect(dp, machine)
+	if err != nil {
+		return err
+	}
+	home, _ := os.UserHomeDir()
+	applied := 0
+	for _, e := range entries {
+		if subpath != "" {
+			if !isSubpath(e.Dst, filepath.Join(home, subpath)) {
+				continue
 			}
-			if e.Encrypted {
-				ids, err := loadIdentities(cfg)
-				if err != nil {
-					return err
-				}
-				if err := dots.ApplyEncrypted(e.Src, e.Dst, ids); err != nil {
-					return fmt.Errorf("apply %s: %w", e.Dst, err)
-				}
-				fmt.Printf("%s %s %s\n", ui.Green.Render("✓"), ui.Dim.Render("🔒"), e.Dst)
+		}
+		if e.Encrypted {
+			if dryRun {
+				fmt.Printf("%s %s %s (dry run)\n", ui.Dim.Render("·"), ui.Dim.Render("🔒"), e.Dst)
 				applied++
 				continue
 			}
-			if e.Status == dots.StatusLinked {
-				continue
+			ids, err := loadIdentities(cfg)
+			if err != nil {
+				return err
 			}
-			if err := dots.ApplyEntry(e); err != nil {
+			if err := dots.ApplyEncrypted(e.Src, e.Dst, ids); err != nil {
 				return fmt.Errorf("apply %s: %w", e.Dst, err)
 			}
-			fmt.Printf("%s %s\n", ui.Green.Render("✓"), e.Dst)
+			fmt.Printf("%s %s %s\n", ui.Green.Render("✓"), ui.Dim.Render("🔒"), e.Dst)
 			applied++
+			continue
 		}
-		if applied == 0 {
-			fmt.Println(ui.Dim.Render("Nothing to apply."))
+		if e.Status == dots.StatusLinked {
+			if dryRun {
+				fmt.Printf("%s %s\n", ui.Green.Render("✓"), e.Dst)
+			}
+			continue
 		}
-		return nil
+		if dryRun {
+			fmt.Printf("%s %s (dry run)\n", ui.Dim.Render("·"), e.Dst)
+			applied++
+			continue
+		}
+		if err := dots.ApplyEntry(e); err != nil {
+			return fmt.Errorf("apply %s: %w", e.Dst, err)
+		}
+		fmt.Printf("%s %s\n", ui.Green.Render("✓"), e.Dst)
+		applied++
+	}
+	if applied == 0 && !dryRun {
+		fmt.Println(ui.Dim.Render("Nothing to apply."))
+	}
+	return nil
+}
+
+var dotsCloneCmd = &cobra.Command{
+	Use:   "clone <repo>",
+	Short: "Clone an existing dotfiles repo and apply it",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runDotsClone(args[0], cloneDryRun)
 	},
+}
+
+func runDotsClone(repo string, dryRun bool) error {
+	cfg, err := loadConfig()
+	if err != nil {
+		return err
+	}
+	dp, err := cfg.DotsPath()
+	if err != nil {
+		return err
+	}
+
+	if dryRun {
+		fmt.Printf("%s Would clone %s into %s (dry run)\n", ui.Dim.Render("·"), repo, dp)
+		fmt.Printf("%s Would run dots apply (dry run)\n", ui.Dim.Render("·"))
+		return nil
+	}
+
+	if entries, err := os.ReadDir(dp); err == nil && len(entries) > 0 {
+		return fmt.Errorf("dots path %s already exists and is non-empty; remove it first", dp)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(dp), 0o755); err != nil {
+		return err
+	}
+
+	cmd := exec.Command("git", "clone", repo, dp)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git clone: %w", err)
+	}
+
+	return runDotsApply(machineFlag, "", false)
 }
 
 var dotsStatusCmd = &cobra.Command{
@@ -333,5 +411,8 @@ func loadIdentities(cfg *config.Config) ([]age.Identity, error) {
 func init() {
 	dotsCmd.PersistentFlags().StringVar(&machineFlag, "machine", "", "override machine name (default: hostname)")
 	dotsAddCmd.Flags().BoolVar(&encryptFlag, "encrypt", false, "encrypt the file before adding to the repo")
-	dotsCmd.AddCommand(dotsInitCmd, dotsApplyCmd, dotsStatusCmd, dotsDiffCmd, dotsAddCmd, dotsRemoveCmd, dotsEditCmd)
+	dotsInitCmd.Flags().BoolVar(&dotsInitDryRun, "dry-run", false, "preview what dots init would do without touching the filesystem")
+	dotsApplyCmd.Flags().BoolVar(&applyDryRun, "dry-run", false, "preview what would be applied without touching the filesystem")
+	dotsCloneCmd.Flags().BoolVar(&cloneDryRun, "dry-run", false, "preview what clone would do without touching the filesystem")
+	dotsCmd.AddCommand(dotsInitCmd, dotsApplyCmd, dotsStatusCmd, dotsDiffCmd, dotsAddCmd, dotsRemoveCmd, dotsEditCmd, dotsCloneCmd)
 }
