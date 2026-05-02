@@ -148,6 +148,26 @@ dots:
     identity: ~/.age/key    # optional; falls back to ~/.ssh/id_ed25519
 ```
 
+## Shell completions
+
+**bash:**
+
+```sh
+yo completion bash | sudo tee /etc/bash_completion.d/yo
+```
+
+**zsh:**
+
+```sh
+yo completion zsh > ~/.zsh/completions/_yo
+```
+
+**nushell** — add `use yo.nu *` to your `config.nu`:
+
+```sh
+yo completion nushell | save ~/.config/nushell/completions/yo.nu
+```
+
 ## Upgrading
 
 ```sh

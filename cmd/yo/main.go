@@ -13,7 +13,8 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
-	rootCmd.AddCommand(initCmd, dotsCmd, upgradeCmd, versionCmd)
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	rootCmd.AddCommand(initCmd, dotsCmd, upgradeCmd, versionCmd, completionCmd)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
